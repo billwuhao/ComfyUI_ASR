@@ -1,15 +1,15 @@
 [project]
-name = "asr-zh-mw"
-description = "Automated Speech Recognition for Chinese."
-version = "1.0.2"
+name = "asr-mw"
+description = "带时间戳、标点符号，自动语音识别。给视频自动添加字幕。"
+version = "1.0.0"
 license = {file = "LICENSE"}
-dependencies = ["faster_whisper"]
+dependencies = ["faster_whisper", "moviepy", "langid", "jieba"]
 
 [project.urls]
-Repository = "https://github.com/billwuhao/ComfyUI_ASR-zh"
+Repository = "https://github.com/billwuhao/ComfyUI_ASR"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
 PublisherId = "mw"
-DisplayName = "ComfyUI_ASR-zh"
+DisplayName = "ComfyUI_ASR"
 Icon = ""
