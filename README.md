@@ -11,6 +11,13 @@ ComfyUI_ASR 是一套用于语音识别和字幕处理的ComfyUI自定义节点�
 - 可选是否去除标点符号，去掉标点符号后会更美观；
 - 全中文参数，无需汉化。
 
+https://github.com/user-attachments/assets/3d445437-4be7-46c9-86a4-af6720ad6969
+
+https://github.com/user-attachments/assets/b7f7489c-a508-49b9-924a-62ed3e104885
+
+https://github.com/user-attachments/assets/0831e13f-27ae-493c-a3bf-9dfd23f57838
+
+https://github.com/user-attachments/assets/045971df-2668-4044-96ad-30a2d9d03171
 
 ## 📣 更新
 
@@ -149,5 +156,6 @@ pip install -r requirements.txt
 - [whisper-large-v3-ct2](https://huggingface.co/erik-svensson-cm/whisper-large-v3-ct2)
 
 ## 鸣谢
+
 
 [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
