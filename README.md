@@ -21,7 +21,7 @@ https://github.com/user-attachments/assets/045971df-2668-4044-96ad-30a2d9d03171
 
 ## 📣 更新
 
-[2025-11-02]⚒️: v1.0.1。修复描边宽度参数非整数问题。
+[2025-11-02]⚒️: v1.0.1。修复描边宽度参数非整数问题。增加模型自动下载功能，第一次运行，如果模型未下载，会自动下载。
 
 [2025-11-01]⚒️: 发布 v1.0.0。
 
@@ -140,24 +140,23 @@ pip install -r requirements.txt
 
 ## 模型下载
 
-选择需要的模型（可任选其一，中文请选 “zh” 版本），下载放到 `ComfyUI/models/TTS` 目录下:
+如果不能自动下载，请手动下载。
 
-- [Belle-whisper-large-v3-zh-punct-ct2](https://hf-mirror.com/k1nto/Belle-whisper-large-v3-zh-punct-ct2)
+选择需要的模型（可任选其一，中文请选 “zh” 版本），下载放到 `ComfyUI/models/TTS` 目录下，例如:
 
 ```
-   .gitattributes
+.../TTS/Belle-whisper-large-v3-zh-punct-ct2
     config.json
     model.bin
     preprocessor_config.json
-    README.md
     tokenizer.json
     vocabulary.json
 ```
 
+- [Belle-whisper-large-v3-zh-punct-ct2](https://hf-mirror.com/k1nto/Belle-whisper-large-v3-zh-punct-ct2)
 - [Belle-whisper-large-v3-zh-punct-ct2-float32](https://huggingface.co/CWTchen/Belle-whisper-large-v3-zh-punct-ct2-float32)
 - [whisper-large-v3-ct2](https://huggingface.co/erik-svensson-cm/whisper-large-v3-ct2)
 
 ## 鸣谢
-
 
 [faster-whisper](https://github.com/SYSTRAN/faster-whisper)

@@ -9,6 +9,7 @@ import langid
 import jieba
 import re
 # from comfy.utils import ProgressBar
+from .MW_utils.hf_download import download_model_with_snapshot
 
 
 models_dir = folder_paths.models_dir
@@ -142,7 +143,7 @@ def create_custom_sentences(words_list, sentences_list, max_len, lang="zh"):
 
 MODEL_CACHE = None
 class ASRMW:
-    models_list = ["Belle-whisper-large-v3-zh-punct-ct2", "Belle-whisper-large-v3-zh-punct-ct2-float32", "faster-whisper-large-v3-turbo-ct2"]
+    models_list = ["k1nto/Belle-whisper-large-v3-zh-punct-ct2", "CWTchen/Belle-whisper-large-v3-zh-punct-ct2-float32", "erik-svensson-cm/whisper-large-v3-ct2"]
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_name = None
@@ -185,8 +186,11 @@ class ASRMW:
 
         global MODEL_CACHE
         if MODEL_CACHE is None or self.model_name != 模型:
-            model_asr = os.path.join(model_path, 模型)
+            model_asr = os.path.join(model_path, 模型.split("/")[-1])
+            allow_patterns = ["config.json", "model.bin", "tokenizer.json", "preprocessor_config.json", "vocabulary.json"]
+            download_model_with_snapshot(repo_id=模型, local_dir=model_asr, allow_patterns=allow_patterns)
             print(f"Loading ASR model from: {model_asr}")
+            
             if not os.path.exists(model_asr):
                 raise FileNotFoundError(f"Model file not found: {model_asr}. Please check paths.")
             MODEL_CACHE = WhisperModel(model_asr, device=self.device)
