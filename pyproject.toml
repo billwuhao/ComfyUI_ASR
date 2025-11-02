@@ -1,7 +1,7 @@
 [project]
 name = "asr-mw"
 description = "带时间戳、标点符号，自动语音识别。给视频自动添加字幕。"
-version = "1.0.0"
+version = "1.0.1"
 license = {file = "LICENSE"}
 dependencies = ["faster_whisper", "moviepy", "langid", "jieba"]
 

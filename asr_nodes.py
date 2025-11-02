@@ -8,6 +8,7 @@ import torch
 import langid
 import jieba
 import re
+# from comfy.utils import ProgressBar
 
 
 models_dir = folder_paths.models_dir
