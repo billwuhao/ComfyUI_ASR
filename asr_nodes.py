@@ -7,9 +7,14 @@ from faster_whisper import WhisperModel
 import torch
 import langid
 import jieba
-import re
 # from comfy.utils import ProgressBar
 from .MW_utils.hf_download import download_model_with_snapshot
+from .timestamp_alignment import (
+    align_chunks_to_timestamps,
+    chunk_chinese_tokens,
+    is_punctuation,
+    normalize_text,
+)
 
 
 models_dir = folder_paths.models_dir
@@ -39,84 +44,42 @@ def cache_audio_tensor(
         raise Exception(f"Error caching audio tensor: {e}")
 
 
-PUNCTUATION = "＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃『』【】〖〗〘〙〚〛〜〝〞〟–—‘’‛„‟…‧﹏." \
-              "!?(),;:[]{}<>\"+-=&^*%$#@/" \
-              "。？！，、；：“”‘'《》〈〉「」〔〕——·~`-"
-
 def convert_to_string(lst):
     return "\n".join([f"({x[0]}, {x[1]}) {x[2]}" for x in lst])
 
-def is_punctuation(text):
-    return all(char in PUNCTUATION for char in text.strip())
-
-def create_custom_sentences(words_list, sentences_list, max_len, lang="zh"):
+def create_custom_sentences(words_list, sentences_list, max_len, lang="zh", sentence_words_list=None):
     full_text = "".join([s[2] for s in sentences_list])
     if not full_text: return []
     custom_sentences_list = []
     global_word_cursor = 0
 
-    for sent_start, sent_end, sent_text in sentences_list:
-        sentence_words = []
-        norm_target_text = re.sub(r'[\s' + re.escape(PUNCTUATION) + r']+', '', sent_text)
-        reconstructed_text = ""
-        temp_cursor = global_word_cursor
-        while temp_cursor < len(words_list) and len(reconstructed_text) < len(norm_target_text):
-            word_content = words_list[temp_cursor][2]
-            sentence_words.append(words_list[temp_cursor])
-            reconstructed_text += re.sub(r'[\s' + re.escape(PUNCTUATION) + r']+', '', word_content)
-            temp_cursor += 1
-        global_word_cursor = temp_cursor
-        if not sentence_words: continue
+    for sentence_index, (sent_start, sent_end, sent_text) in enumerate(sentences_list):
+        if sentence_words_list is not None and sentence_index < len(sentence_words_list):
+            sentence_words = sentence_words_list[sentence_index]
+        else:
+            # Backward-compatible fallback for callers that only provide the
+            # flattened word list. Compare normalized characters so punctuation
+            # does not consume the cursor early.
+            sentence_words = []
+            target_length = len(normalize_text(sent_text))
+            reconstructed_length = 0
+            while global_word_cursor < len(words_list) and reconstructed_length < target_length:
+                word = words_list[global_word_cursor]
+                sentence_words.append(word)
+                reconstructed_length += len(normalize_text(word[2]))
+                global_word_cursor += 1
 
         if lang == "zh":
-            local_word_cursor = 0
             jieba_words = [w.strip() for w in jieba.lcut(sent_text) if w.strip()]
-            jieba_cursor = 0
-            
-            while jieba_cursor < len(jieba_words):
-                
-                core_words = []
-                current_len = 0
-                while jieba_cursor < len(jieba_words):
-                    token = jieba_words[jieba_cursor]
-                    if is_punctuation(token):
-                        break 
-                    if current_len + len(token) > max_len and core_words:
-                        break
-                    core_words.append(token)
-                    current_len += len(token)
-                    jieba_cursor += 1
-                
-                if not core_words:
-                    if jieba_cursor < len(jieba_words) and is_punctuation(jieba_words[jieba_cursor]):
-                        if custom_sentences_list:
-                            custom_sentences_list[-1][2] += jieba_words[jieba_cursor]
-                        jieba_cursor += 1
-                    continue
-                
-                chunk_text = "".join(core_words)
-                chunk_len = len(chunk_text)
-                
-                chars_consumed = 0
-                start_idx = local_word_cursor
-                end_idx = local_word_cursor
-                for i in range(start_idx, len(sentence_words)):
-                    chars_consumed += len(sentence_words[i][2])
-                    end_idx = i
-                    if chars_consumed >= chunk_len: break
-                
-                start_time, end_time = -1, -1
-                if start_idx <= end_idx:
-                    start_time = sentence_words[start_idx][0]
-                    end_time = sentence_words[end_idx][1]
-                    local_word_cursor = end_idx + 1
-                
-                while jieba_cursor < len(jieba_words) and is_punctuation(jieba_words[jieba_cursor]):
-                    chunk_text += jieba_words[jieba_cursor]
-                    jieba_cursor += 1 
-                
-                if start_time != -1:
-                    custom_sentences_list.append([start_time, end_time, chunk_text])
+            chunks = chunk_chinese_tokens(jieba_words, max_len)
+            custom_sentences_list.extend(
+                align_chunks_to_timestamps(
+                    chunks,
+                    sentence_words,
+                    sent_start,
+                    sent_end,
+                )
+            )
         else: 
             timed_tokens = [[s, e, w.strip()] for s, e, w in sentence_words]
             if not timed_tokens: continue
@@ -208,10 +171,15 @@ class ASRMW:
         segments, info = MODEL_CACHE.transcribe(audio_file, word_timestamps=True)
         words_list = []
         sentences_list = []
+        sentence_words_list = []
         for segment in segments:
+            sentence_words = []
             for i in segment.words:
-                words_list.append([round(i.start, 2), round(i.end, 2), i.word.strip()])
+                word = [round(i.start, 2), round(i.end, 2), i.word.strip()]
+                words_list.append(word)
+                sentence_words.append(word)
             sentences_list.append([round(segment.start, 2), round(segment.end, 2), segment.text.strip()])
+            sentence_words_list.append(sentence_words)
         
         texts = " ".join([i[2] for i in sentences_list])
         lang, _ = langid.classify(texts)
@@ -227,6 +195,7 @@ class ASRMW:
                 sentences_list,
                 max_len=每句最大长度,
                 lang=lang,
+                sentence_words_list=sentence_words_list,
             )
         
         if 卸载模型:
@@ -270,4 +239,3 @@ class ASRMW:
 
 
     
-
